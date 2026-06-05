@@ -1,0 +1,92 @@
+{
+    "configurations" :
+    [
+        {
+            "name": "Debug MDR1206FI (JLink debugger)",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "request": "launch",
+            "executable": "${config:executable}",
+            "configFiles": [ "interface/jlink.cfg", "target/MDR1206FI.cfg" ],
+            "gdbPath": "C:/WORK/xpack-riscv-none-elf-gcc-15.2.0-1/bin/riscv-none-elf-gdb.exe",
+            "serverpath": "C:/WORK/openocd_mdr/bin/openocd.exe",
+            "svdFile": "${workspaceFolder}/svd/MDR1206/MDR1206FI.svd",
+            "cwd": "${workspaceFolder}",
+            "interface": "jtag",
+            "overrideLaunchCommands": [
+                "monitor reset halt",
+                "load",
+                "tbreak main",
+                "monitor halt",
+            ],
+            "overrideRestartCommands": [
+                "monitor reset halt",
+                "load",
+                "tbreak main",
+                "monitor halt",
+            ],
+        },
+        {
+            "name" : "Debug Flash (gdb/jlink)",
+            "cwd" : "${workspaceRoot}",
+            "executable" : "${config:executable}",
+            "interface": "jtag",
+            "request" : "launch",
+            "type" : "cortex-debug",
+            "servertype" : "jlink",
+            "device" : "${config:device}",
+            "preLaunchTask" : "CMake: build",
+            "runToEntryPoint" : "main",
+            "overrideLaunchCommands": [ "load", "monitor halt" ],
+            "svdFile" : "${config:svdFile}",
+            "liveWatch": { "enabled": false, "samplesPerSecond": 2 }
+        },
+        {
+            "name": "Debug RAM (gdb/jlink)",
+            "cwd": "${workspaceRoot}",
+            "executable": "${config:executable}",
+            "interface": "jtag",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "device": "${config:device}",
+            "preLaunchTask": "CMake: build",
+            "overrideLaunchCommands": [
+                "monitor halt",          // Останавливаем ядро
+                "load",                  // Загружаем ELF в RAM (0x40000000)
+                "monitor halt",          // Повторный halt — гарантируем остановку после load
+                "monitor exec SetRTTSearchRanges 0x40010000 0x8000",
+                "set $pc = &_start",
+                //"set $pc = 0x40000000",  // Явно выставляем PC на начало RAM (стартовый адрес RAM+J режима)
+                "break main",            // Брейкпоинт на main через GDB (обход проблемы с кодировкой)
+                "continue"               // Запускаем до main
+            ],
+            // НЕ используем runToEntryPoint — из-за бага кодировки CP1252/UTF-32 в этой версии GDB
+            // "runToEntryPoint": "main",
+            "showDevDebugOutput": "raw", // Временно включить для диагностики
+            "svdFile": "${config:svdFile}",
+            "liveWatch": { "enabled": false, "samplesPerSecond": 2 }
+        },
+        {
+            "name" : "Debug (ocd/ft232h)",
+            "cwd" : "${workspaceRoot}",
+            "executable" : "${config:executable}",
+            "interface": "jtag",
+            "request" : "launch",
+            "type" : "cortex-debug",
+            "servertype" : "openocd",
+            "gdbPath": "C:/WORK/xpack-riscv-none-elf-gcc-15.2.0-1/bin/riscv-none-elf-gdb.exe",
+            "serverpath": "C:/WORK/openocd_mdr/bin/openocd.exe",
+            "device" : "${config:device}",
+            "preLaunchTask" : "CMake: build",
+            //"preRestartCommands" : [ "load", "enable breakpoint", "monitor halt" ],
+            "runToEntryPoint" : "main",
+            //"showDevDebugOutput" : "raw",
+            "overrideLaunchCommands": [ "load", "monitor halt" ],
+            "svdFile" : "${config:svdFile}",
+            "configFiles": [ "interface/ftdi/um232h.cfg", "target/${config:targetFamily}.cfg" ],
+            "liveWatch": { "enabled": false, "samplesPerSecond": 2 },
+        },
+    ],
+    "version" : "0.2.0"
+  }
